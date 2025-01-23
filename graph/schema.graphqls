@@ -1,0 +1,48 @@
+scalar Date
+
+enum UserRole {
+    ADMIN
+    USER
+}
+
+type User {
+    id: String!
+    firstName: String!
+    lastName: String!
+    email: String!
+    password: String!
+    role: UserRole! # 'ADMIN' | 'USER'
+    createdAt: Date!
+    updatedAt: Date!
+}
+
+type Coffee {
+    id: String!
+    name: String!
+    description: String!
+    price: Float!
+    createdBy: User!
+    createdAt: Date!
+    updatedAt: Date!
+}
+
+type AuthPayload {
+    token: String!
+    user: User!
+}
+
+type Query {
+    currentUser: User
+}
+
+type Mutation {
+    signUp(
+        firstName: String!
+        lastName: String!
+        email: String!
+        password: String!
+        role: UserRole!
+    ): AuthPayload!
+    login(email: String!, password: String!): AuthPayload!
+    createCoffee(name: String!, description: String!, price: Float!): Coffee!
+}
