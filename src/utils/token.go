@@ -41,19 +41,13 @@ func GetTokenString(context *gin.Context) string {
 	return ""
 }
 
-func GetUserIdFromToken(tokenString string) (string, error) {
-	token, err := ValidateToken(tokenString)
-	if err != nil {
-		return "", err
-	}
-
+func GetUserIdFromToken(token *jwt.Token) string {
 	claims, ok := token.Claims.(jwt.MapClaims)
-
 	if ok && token.Valid {
-		return claims["user_id"].(string), nil
+		return claims["userId"].(string)
 	}
 
-	return "", err
+	return ""
 }
 
 func getTokenClaims(userId interface{}, expiryDays int) *jwtCustomClaim {

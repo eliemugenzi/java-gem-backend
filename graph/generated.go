@@ -44,6 +44,7 @@ type ResolverRoot interface {
 }
 
 type DirectiveRoot struct {
+	Auth func(ctx context.Context, obj any, next graphql.Resolver) (res any, err error)
 }
 
 type ComplexityRoot struct {
@@ -63,7 +64,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateCoffee func(childComplexity int, name string, description string, price float64) int
+		CreateCoffee func(childComplexity int, input *models.CreateCoffeeInput) int
 		Login        func(childComplexity int, email string, password string) int
 		SignUp       func(childComplexity int, firstName string, lastName string, email string, password string, role models.UserRole) int
 	}
@@ -82,12 +83,17 @@ type ComplexityRoot struct {
 		Role      func(childComplexity int) int
 		UpdatedAt func(childComplexity int) int
 	}
+
+	ValidationError struct {
+		Field   func(childComplexity int) int
+		Message func(childComplexity int) int
+	}
 }
 
 type MutationResolver interface {
 	SignUp(ctx context.Context, firstName string, lastName string, email string, password string, role models.UserRole) (*models.AuthPayload, error)
 	Login(ctx context.Context, email string, password string) (*models.AuthPayload, error)
-	CreateCoffee(ctx context.Context, name string, description string, price float64) (*models.Coffee, error)
+	CreateCoffee(ctx context.Context, input *models.CreateCoffeeInput) (*models.Coffee, error)
 }
 type QueryResolver interface {
 	CurrentUser(ctx context.Context) (*models.User, error)
@@ -185,7 +191,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateCoffee(childComplexity, args["name"].(string), args["description"].(string), args["price"].(float64)), true
+		return e.complexity.Mutation.CreateCoffee(childComplexity, args["input"].(*models.CreateCoffeeInput)), true
 
 	case "Mutation.login":
 		if e.complexity.Mutation.Login == nil {
@@ -274,6 +280,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.UpdatedAt(childComplexity), true
 
+	case "ValidationError.field":
+		if e.complexity.ValidationError.Field == nil {
+			break
+		}
+
+		return e.complexity.ValidationError.Field(childComplexity), true
+
+	case "ValidationError.message":
+		if e.complexity.ValidationError.Message == nil {
+			break
+		}
+
+		return e.complexity.ValidationError.Message(childComplexity), true
+
 	}
 	return 0, false
 }
@@ -281,7 +301,9 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	opCtx := graphql.GetOperationContext(ctx)
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
-	inputUnmarshalMap := graphql.BuildUnmarshalerMap()
+	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputCreateCoffeeInput,
+	)
 	first := true
 
 	switch opCtx.Operation.Operation {
@@ -400,59 +422,23 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_createCoffee_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Mutation_createCoffee_argsName(ctx, rawArgs)
+	arg0, err := ec.field_Mutation_createCoffee_argsInput(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["name"] = arg0
-	arg1, err := ec.field_Mutation_createCoffee_argsDescription(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["description"] = arg1
-	arg2, err := ec.field_Mutation_createCoffee_argsPrice(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["price"] = arg2
+	args["input"] = arg0
 	return args, nil
 }
-func (ec *executionContext) field_Mutation_createCoffee_argsName(
+func (ec *executionContext) field_Mutation_createCoffee_argsInput(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (string, error) {
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-	if tmp, ok := rawArgs["name"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
+) (*models.CreateCoffeeInput, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+	if tmp, ok := rawArgs["input"]; ok {
+		return ec.unmarshalOCreateCoffeeInput2ᚖjavaᚑgemᚋgraphᚋmodelᚐCreateCoffeeInput(ctx, tmp)
 	}
 
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_createCoffee_argsDescription(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-	if tmp, ok := rawArgs["description"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_createCoffee_argsPrice(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (float64, error) {
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("price"))
-	if tmp, ok := rawArgs["price"]; ok {
-		return ec.unmarshalNFloat2float64(ctx, tmp)
-	}
-
-	var zeroVal float64
+	var zeroVal *models.CreateCoffeeInput
 	return zeroVal, nil
 }
 
@@ -1237,7 +1223,7 @@ func (ec *executionContext) _Mutation_createCoffee(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateCoffee(rctx, fc.Args["name"].(string), fc.Args["description"].(string), fc.Args["price"].(float64))
+		return ec.resolvers.Mutation().CreateCoffee(rctx, fc.Args["input"].(*models.CreateCoffeeInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1829,6 +1815,94 @@ func (ec *executionContext) fieldContext_User_updatedAt(_ context.Context, field
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Date does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ValidationError_field(ctx context.Context, field graphql.CollectedField, obj *models.ValidationError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ValidationError_field(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Field, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ValidationError_field(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ValidationError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ValidationError_message(ctx context.Context, field graphql.CollectedField, obj *models.ValidationError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ValidationError_message(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Message, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ValidationError_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ValidationError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3607,9 +3681,73 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(_ context.Context
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputCreateCoffeeInput(ctx context.Context, obj any) (models.CreateCoffeeInput, error) {
+	var it models.CreateCoffeeInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "description", "price"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "description":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		case "price":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("price"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Price = data
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
+
+func (ec *executionContext) _CoffeeResponse(ctx context.Context, sel ast.SelectionSet, obj models.CoffeeResponse) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case models.Coffee:
+		return ec._Coffee(ctx, sel, &obj)
+	case *models.Coffee:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._Coffee(ctx, sel, obj)
+	case models.ValidationError:
+		return ec._ValidationError(ctx, sel, &obj)
+	case *models.ValidationError:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ValidationError(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
 
 // endregion ************************** interface.gotpl ***************************
 
@@ -3659,7 +3797,7 @@ func (ec *executionContext) _AuthPayload(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
-var coffeeImplementors = []string{"Coffee"}
+var coffeeImplementors = []string{"Coffee", "CoffeeResponse"}
 
 func (ec *executionContext) _Coffee(ctx context.Context, sel ast.SelectionSet, obj *models.Coffee) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, coffeeImplementors)
@@ -3908,6 +4046,50 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "updatedAt":
 			out.Values[i] = ec._User_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var validationErrorImplementors = []string{"ValidationError", "CoffeeResponse"}
+
+func (ec *executionContext) _ValidationError(ctx context.Context, sel ast.SelectionSet, obj *models.ValidationError) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, validationErrorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ValidationError")
+		case "field":
+			out.Values[i] = ec._ValidationError_field(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "message":
+			out.Values[i] = ec._ValidationError_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -4645,6 +4827,14 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	}
 	res := graphql.MarshalBoolean(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOCreateCoffeeInput2ᚖjavaᚑgemᚋgraphᚋmodelᚐCreateCoffeeInput(ctx context.Context, v any) (*models.CreateCoffeeInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputCreateCoffeeInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {

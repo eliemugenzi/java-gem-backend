@@ -11,6 +11,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"gorm.io/gorm/schema"
 )
 
 type Repositpry struct {
@@ -52,6 +53,9 @@ func Configure() *gorm.DB {
 		),
 		&gorm.Config{
 			Logger: newLogger,
+			NamingStrategy: schema.NamingStrategy{
+				SingularTable: false,
+			},
 		},
 	)
 
@@ -59,7 +63,7 @@ func Configure() *gorm.DB {
 		log.Fatal("Error connecting to database")
 	}
 
-	DB.AutoMigrate(&models.User{})
+	DB.AutoMigrate(&models.User{}, &models.Coffee{})
 
 	return DB
 }
@@ -72,4 +76,9 @@ func CloseConnection(db *gorm.DB) {
 	}
 
 	dbSQL.Close()
+}
+
+var RequiredOperations map[string]bool = map[string]bool{
+	"login":  false,
+	"signUp": false,
 }

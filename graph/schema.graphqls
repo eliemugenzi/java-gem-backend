@@ -1,3 +1,10 @@
+input CreateCoffeeInput {
+    name: String!
+    description: String!
+    price: Float!
+}
+
+directive @auth on FIELD_DEFINITION
 scalar Date
 
 enum UserRole {
@@ -44,5 +51,12 @@ type Mutation {
         role: UserRole!
     ): AuthPayload!
     login(email: String!, password: String!): AuthPayload!
-    createCoffee(name: String!, description: String!, price: Float!): Coffee!
+    createCoffee(input: CreateCoffeeInput): Coffee!
 }
+
+type ValidationError {
+    field: String!
+    message: String!
+}
+
+union CoffeeResponse = Coffee | ValidationError

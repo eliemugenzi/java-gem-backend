@@ -6,7 +6,13 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+
+	"gorm.io/gorm"
 )
+
+type CoffeeResponse interface {
+	IsCoffeeResponse()
+}
 
 type AuthPayload struct {
 	Token string `json:"token"`
@@ -14,13 +20,23 @@ type AuthPayload struct {
 }
 
 type Coffee struct {
+	gorm.Model
 	ID          string  `json:"id"`
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
-	CreatedBy   *User   `json:"createdBy"`
+	UserId string `json:"userId"`
+	CreatedBy   *User   `json:"createdBy" gorm:"foreignKey:UserId"`
 	CreatedAt   string  `json:"createdAt"`
 	UpdatedAt   string  `json:"updatedAt"`
+}
+
+func (Coffee) IsCoffeeResponse() {}
+
+type CreateCoffeeInput struct {
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Price       float64 `json:"price"`
 }
 
 type Mutation struct {
@@ -30,15 +46,23 @@ type Query struct {
 }
 
 type User struct {
+	gorm.Model
 	ID        string   `json:"id"`
-	FirstName string   `json:"firstName"`
-	LastName  string   `json:"lastName"`
-	Email     string   `json:"email"`
-	Password  string   `json:"password"`
+	FirstName string   `json:"firstName" validate:"required,min=3,max=30"`
+	LastName  string   `json:"lastName" validate:"required,min=3,max=30"`
+	Email     string   `json:"email" validate:"required,email"`
+	Password  string   `json:"password" validate:"required,min=8,containsany=!@#$%^&*"`
 	Role      UserRole `json:"role"`
 	CreatedAt string   `json:"createdAt"`
 	UpdatedAt string   `json:"updatedAt"`
 }
+
+type ValidationError struct {
+	Field   string `json:"field"`
+	Message string `json:"message"`
+}
+
+func (ValidationError) IsCoffeeResponse() {}
 
 type UserRole string
 

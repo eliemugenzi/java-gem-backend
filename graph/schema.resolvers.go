@@ -9,42 +9,41 @@ import (
 	// "errors"
 	"fmt"
 	models "java-gem/graph/model"
-	// "time"
 )
 
-// // SignUp is the resolver for the signUp field.
+// SignUp is the resolver for the signUp field.
 // func (r *mutationResolver) SignUp(ctx context.Context, firstName string, lastName string, email string, password string, role models.UserRole) (*models.AuthPayload, error) {
-// 	for _, user := range users {
-// 		if user.Email == email {
-// 			return nil, errors.New("email already exists")
-// 		}
+// 	user := &models.User{}
+// 	userResult := DB.Where("email = ?", email).First(user)
+// 	if userResult.Error == nil {
+// 		return nil, errors.New("User with this email already exists")
 // 	}
 
-// 	newUser := models.User{
+// 	newUser := &models.User{
 // 		ID:        uuid.New().String(),
 // 		FirstName: firstName,
 // 		LastName:  lastName,
 // 		Email:     email,
-// 		CreatedAt: time.Now().Format(time.RFC3339),
-// 		UpdatedAt: time.Now().Format(time.RFC3339),
+// 		CreatedAt: utils.GetCurrentTime(),
+// 		UpdatedAt: utils.GetCurrentTime(),
 // 		Password:  utils.HashPassword([]byte(password)),
-// 		Role:      "ADMIN",
+// 		Role:      role,
 // 	}
 
-// 	DB.Create(&newUser)
+// 	DB.Create(newUser)
 
 // 	tokenPair := utils.GenerateTokenPair(newUser.ID)
 // 	return &models.AuthPayload{
 // 		Token: tokenPair["accessToken"],
-// 		User:  &newUser,
+// 		User:  newUser,
 // 	}, nil
 // }
 
-// // Login is the resolver for the login field.
+// Login is the resolver for the login field.
 // func (r *mutationResolver) Login(ctx context.Context, email string, password string) (*models.AuthPayload, error) {
-// 	foundUser := models.User{}
+// 	foundUser := &models.User{}
 // 	fmt.Println("User email: " + email)
-// 	userResult := DB.Where("email = ?", email).First(&foundUser)
+// 	userResult := DB.Where("email = ?", email).First(foundUser)
 
 // 	fmt.Println(userResult)
 
@@ -60,12 +59,22 @@ import (
 
 // 	return &models.AuthPayload{
 // 		Token: tokenPair["accessToken"],
-// 		User:  &foundUser,
+// 		User:  foundUser,
 // 	}, nil
 // }
 
-// // CreateCoffee is the resolver for the createCoffee field.
-// func (r *mutationResolver) CreateCoffee(ctx context.Context, name string, description string, price float64) (*models.Coffee, error) {
+// CreateCoffee is the resolver for the createCoffee field.
+// func (r *mutationResolver) CreateCoffee(ctx context.Context, input *models.CreateCoffeeInput) (*models.Coffee, error) {
+// 	userId := ctx.Value(constants.USER_CONTEXT_KEY)
+// 	authenticatedUser := &models.User{}
+// 	queryResult := DB.Where("id=?", userId).Take(authenticatedUser)
+
+// 	if queryResult.Error != nil {
+// 		errorMessage := fmt.Sprintf("Unable to find an authenticated user: %v", queryResult.Error.Error())
+// 		return nil, errors.New(errorMessage)
+// 	}
+
+// 	fmt.Printf("User data: %v\n", authenticatedUser)
 // 	panic(fmt.Errorf("not implemented: CreateCoffee - createCoffee"))
 // }
 
