@@ -30,9 +30,12 @@ func Configure() *gorm.DB {
 		},
 	)
 
-	if err := godotenv.Load(); err != nil {
-		errorMessage := fmt.Sprintf("Failed to load the .env file: %v", err)
-		log.Fatal(errorMessage)
+	if os.Getenv("RAILWAY_ENVIRONMENT") == "" {
+		// Load .env file only in development
+		if err := godotenv.Load(); err != nil {
+			errorMessage := fmt.Sprintf("Failed to load the .env file: %v", err)
+			log.Fatal(errorMessage)
+		}
 	}
 
 	dbHost := os.Getenv("DATABASE_HOST")
