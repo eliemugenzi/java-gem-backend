@@ -24,6 +24,7 @@ type Coffee struct {
 	ID          string  `json:"id"`
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
+	Image string `json:"image"`
 	Price       float64 `json:"price"`
 	UserId string `json:"userId"`
 	CreatedBy   *User   `json:"createdBy" gorm:"foreignKey:UserId;references:ID"`
@@ -36,6 +37,7 @@ func (Coffee) IsCoffeeResponse() {}
 type CreateCoffeeInput struct {
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
+	Image string `json:"image"`
 	Price       float64 `json:"price"`
 }
 

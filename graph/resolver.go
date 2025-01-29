@@ -122,6 +122,7 @@ func (r *mutationResolver) CreateCoffee(ctx context.Context, input *models.Creat
 		CreatedBy:   authenticatedUser,
 		CreatedAt:   utils.GetCurrentTime(),
 		UpdatedAt:   utils.GetCurrentTime(),
+		Image:       input.Image,
 	}
 
 	DB.Create(coffee)

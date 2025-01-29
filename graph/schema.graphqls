@@ -1,6 +1,7 @@
 input CreateCoffeeInput {
     name: String!
     description: String!
+    image: String!
     price: Float!
 }
 
@@ -27,6 +28,7 @@ type Coffee {
     id: String!
     name: String!
     description: String!
+    image: String!
     price: Float!
     createdBy: User!
     createdAt: Date!
