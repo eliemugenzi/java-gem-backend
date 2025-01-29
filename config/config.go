@@ -30,9 +30,7 @@ func Configure() *gorm.DB {
 		},
 	)
 
-	err := godotenv.Load()
-
-	if err != nil {
+	if err := godotenv.Load(); err != nil {
 		errorMessage := fmt.Sprintf("Failed to load the .env file: %v", err)
 		log.Fatal(errorMessage)
 	}
