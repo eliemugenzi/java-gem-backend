@@ -26,7 +26,7 @@ type Coffee struct {
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
 	UserId string `json:"userId"`
-	CreatedBy   *User   `json:"createdBy" gorm:"foreignKey:UserId"`
+	CreatedBy   *User   `json:"createdBy" gorm:"foreignKey:UserId;references:ID"`
 	CreatedAt   string  `json:"createdAt"`
 	UpdatedAt   string  `json:"updatedAt"`
 }

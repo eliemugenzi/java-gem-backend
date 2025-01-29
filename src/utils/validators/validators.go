@@ -19,9 +19,11 @@ func init() {
 	validate.RegisterValidation("pasword_strengh", validatePasswordStrength)
 }
 
-/*
-Format errors
-*/
+// Format validators
+//
+// - This formats all the detected validation errors
+//
+// - Converts them into one string
 func (v ValidationErrors) Error() string {
 	var errors []string
 	for _, err := range v {
@@ -55,6 +57,8 @@ func ValidateInput(input interface{}) error {
 
 		return validationErrors
 	}
+
+	fmt.Print("dfgfgghe_________", input, validate.Struct(input), "\n")
 	return nil
 }
 

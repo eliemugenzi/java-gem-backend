@@ -11,6 +11,7 @@ import (
 	models "java-gem/graph/model"
 	"java-gem/src/utils"
 	"java-gem/src/utils/constants"
+	"java-gem/src/utils/validators"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -93,6 +94,11 @@ func (r *mutationResolver) Login(ctx context.Context, email string, password str
 
 // CreateCoffee is the resolver for the createCoffee field.
 func (r *mutationResolver) CreateCoffee(ctx context.Context, input *models.CreateCoffeeInput) (*models.Coffee, error) {
+	err := validators.ValidateInput(input)
+	if err != nil {
+		fmt.Printf("Bad request: %s", err)
+		return nil, err
+	}
 	userId := ctx.Value(constants.USER_CONTEXT_KEY)
 	fmt.Printf("Logged in user ID: %s\n", userId)
 	authenticatedUser := &models.User{}
@@ -100,6 +106,11 @@ func (r *mutationResolver) CreateCoffee(ctx context.Context, input *models.Creat
 
 	if queryResult.Error != nil {
 		errorMessage := fmt.Sprintf("Unable to find an authenticated user: %v", queryResult.Error.Error())
+		return nil, errors.New(errorMessage)
+	}
+
+	if authenticatedUser.Role != models.UserRoleAdmin {
+		errorMessage := fmt.Sprintf("You are not allowed to perform this operation")
 		return nil, errors.New(errorMessage)
 	}
 
@@ -113,9 +124,35 @@ func (r *mutationResolver) CreateCoffee(ctx context.Context, input *models.Creat
 		UpdatedAt:   utils.GetCurrentTime(),
 	}
 
+	DB.Create(coffee)
 	coffee.CreatedBy.Password = ""
 
-	DB.Create(coffee)
-
 	return coffee, nil
+}
+
+func (r *queryResolver) CurrentUser(ctx context.Context) (*models.User, error) {
+	userId := ctx.Value(constants.USER_CONTEXT_KEY)
+	authenticatedUser := &models.User{}
+	queryResult := DB.Where("id=?", userId).Take(authenticatedUser)
+
+	if queryResult.Error != nil {
+		errorMessage := fmt.Sprintf("Unable to find an authenticated user: %v", queryResult.Error.Error())
+		return nil, errors.New(errorMessage)
+	}
+
+	authenticatedUser.Password = ""
+	return authenticatedUser, nil
+}
+
+// CofeeList is the resolver for the cofeeList field.
+func (r *queryResolver) CofeeList(ctx context.Context) ([]*models.Coffee, error) {
+	coffeeList := []*models.Coffee{}
+	queryResult := DB.Order("created_at desc").Preload("CreatedBy").Find(&coffeeList)
+
+	if queryResult.Error != nil {
+		errorMessage := fmt.Sprintf("Error when fetching coffee list: %v", queryResult.Error)
+		return nil, errors.New(errorMessage)
+	}
+
+	return coffeeList, nil
 }
