@@ -33,7 +33,8 @@ func Configure() *gorm.DB {
 	err := godotenv.Load()
 
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		errorMessage := fmt.Sprintf("Failed to load the .env file: %v", err)
+		log.Fatal(errorMessage)
 	}
 
 	dbHost := os.Getenv("DATABASE_HOST")
